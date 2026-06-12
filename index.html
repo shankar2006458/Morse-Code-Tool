@@ -1,0 +1,1142 @@
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Morse Code Tool</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js">
+    </script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['DM Sans', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                        display: ['Playfair Display', 'Georgia', 'serif'],
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        :root {
+            --bg-deep: #0b0b10;
+            --bg-surface: #12121a;
+            --bg-elevated: #181822;
+            --bg-input: #0e0e16;
+            --border-subtle: rgba(255, 255, 255, 0.06);
+            --border-mid: rgba(255, 255, 255, 0.10);
+            --border-active: rgba(200, 170, 110, 0.35);
+            --accent: #c8a96e;
+            --accent-hover: #d4b87a;
+            --accent-dim: #a08950;
+            --text-primary: #e8e4dd;
+            --text-secondary: #b0aca5;
+            --text-tertiary: #6e6b64;
+            --text-muted: #746853;
+            --danger: #9b3a3a;
+            --danger-hover: #b54444;
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 14px;
+            --radius-xl: 20px;
+            --radius-full: 999px;
+            --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.02), 0 2px 16px rgba(0, 0, 0, 0.5);
+            --shadow-elevated: 0 2px 0 rgba(255, 255, 255, 0.02), 0 4px 32px rgba(0, 0, 0, 0.6);
+            --shadow-glow: 0 0 40px rgba(180, 140, 80, 0.06);
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow: hidden;
+        }
+
+        /* Subtle grain overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='1'/%3E%3C/svg%3E");
+            background-repeat: repeat;
+            background-size: 180px 180px;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.14);
+        }
+
+        textarea:focus,
+        input:focus {
+            outline: none;
+        }
+
+        .mode-btn {
+            position: relative;
+            transition:
+                background-color 0.25s ease,
+                color 0.25s ease,
+                box-shadow 0.25s ease,
+                transform 0.2s ease;
+        }
+        .mode-btn.active {
+            background: var(--accent);
+            color: #0b0b10;
+            font-weight: 600;
+            box-shadow: 0 0 20px rgba(200, 170, 110, 0.25);
+            transform: translateY(-1px);
+        }
+        .mode-btn:not(.active):hover {
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-primary);
+        }
+        .mobile-active {
+            background: rgba(200,170,110,0.12) !important;
+            color: var(--accent) !important;
+            font-weight: 600;
+            border-left: 3px solid var(--accent);
+            padding-left: 20px;
+            transition: all 0.3s ease;
+        }
+        .view {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+            animation: viewIn 0.3s ease forwards;
+        }
+        .view.active {
+            display: flex;
+        }
+        @keyframes viewIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .func-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        .func-card:hover {
+            border-color: var(--border-active);
+            box-shadow: var(--shadow-elevated), var(--shadow-glow);
+            transform: translateY(-2px);
+        }
+        .func-card:active {
+            transform: scale(0.985);
+            transition: transform 0.1s ease;
+        }
+        .func-card .card-arrow {
+            transition: all 0.2s ease;
+        }
+        .func-card:hover .card-arrow {
+            color: var(--accent);
+            gap: 10px;
+        }
+
+        .copy-toast {
+            animation: fadeUpToast 2s forwards;
+        }
+        @keyframes fadeUpToast {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            70% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+        }
+
+        /* Visual Morse symbols */
+        .morse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            flex-shrink: 0;
+            transition: all 0.12s ease;
+        }
+        .morse-dash {
+            width: 20px;
+            height: 8px;
+            border-radius: 4px;
+            background: var(--accent);
+            flex-shrink: 0;
+            transition: all 0.12s ease;
+        }
+        .morse-dot.active,
+        .morse-dash.active {
+            background: #e8c97a;
+            box-shadow: 0 0 14px 3px rgba(200, 170, 110, 0.65);
+            transform: scale(1.25);
+            z-index: 2;
+        }
+        .morse-char-group {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            margin-right: 8px;
+        }
+        .morse-word-sep {
+            width: 12px;
+            flex-shrink: 0;
+        }
+
+        /* Slider styling */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 4px;
+            border-radius: 2px;
+            background: #2a2a35;
+            outline: none;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 2px solid #0b0b10;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(200, 170, 110, 0.3);
+            transition: all 0.15s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: var(--accent-hover);
+            box-shadow: 0 0 16px rgba(200, 170, 110, 0.5);
+            transform: scale(1.1);
+        }
+
+        /* Play button pulse when playing */
+        .playing-indicator {
+            animation: playPulse 0.6s ease-in-out infinite alternate;
+        }
+        @keyframes playPulse {
+            from {
+                box-shadow: 0 0 6px rgba(200, 170, 110, 0.4);
+            }
+            to {
+                box-shadow: 0 0 18px rgba(220, 190, 130, 0.8);
+            }
+        }
+        #mobile-menu {
+            transform-origin: top right;
+        }
+        #input-area-decode {
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+        #input-area-decode{
+            height:100%;
+            white-space:pre-wrap;
+            word-break:break-word;
+            overflow-wrap:anywhere;
+        }
+    </style>
+</head>
+<body class="h-full font-sans overflow-hidden flex flex-col" style="background:var(--bg-deep);color:var(--text-primary);">
+
+    <!-- App Shell -->
+    <div class="w-full h-full flex flex-col relative z-10">
+
+        <!-- Header -->
+        <header class="px-6 py-4 border-b flex items-center justify-between flex-shrink-0" style="border-color:var(--border-subtle);background:var(--bg-surface);">
+            <div class="flex items-center gap-3">
+                <div class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:var(--accent);" id="status-dot"></div>
+                <h1 id="app-title" class="text-base font-semibold tracking-[-0.01em]" style="font-family:'Playfair Display',Georgia,serif;letter-spacing:0.04em;">Morse Code Tool</h1>
+            </div>
+            <!-- Desktop Navigation -->
+            <div id="desktop-nav"
+                class="hidden md:flex items-center gap-1.5 rounded-lg p-1"
+                style="background:var(--bg-input);border:1px solid var(--border-subtle);">
+
+                <button id="mode-home" class="mode-btn px-3 py-1.5 rounded-md text-[12px] font-medium uppercase"
+                    onclick="switchToHome()">Home</button>
+
+                <button id="mode-encode" class="mode-btn px-3 py-1.5 rounded-md text-[12px] font-medium uppercase"
+                    onclick="switchToEncode()">Text → Morse</button>
+
+                <button id="mode-decode" class="mode-btn px-3 py-1.5 rounded-md text-[12px] font-medium uppercase"
+                    onclick="switchToDecode()">Morse → Text</button>
+            </div>
+
+            <!-- Mobile Hamburger -->
+            <div class="md:hidden relative">
+                <button onclick="toggleMobileMenu()"
+                    class="p-2 rounded-lg"
+                    style="background:var(--bg-input);border:1px solid var(--border-subtle);">
+                    <i data-lucide="menu" style="width:18px;height:18px"></i>
+                </button>
+
+                <div id="mobile-menu"
+                    class="absolute right-0 top-12 w-44 rounded-xl overflow-hidden opacity-0 scale-95 pointer-events-none transition-all duration-200 ease-out"
+                    style="background:var(--bg-surface);border:1px solid var(--border-subtle);box-shadow:var(--shadow-elevated);z-index:1000;">
+
+                    <button id="mobile-home"
+                            onclick="switchToHome();closeMobileMenu()"
+                        class="w-full text-left px-4 py-3 text-sm hover:bg-white/5 transition-all duration-300">
+                        Home
+                    </button>
+
+                    <button id="mobile-encode"
+                            onclick="switchToEncode();closeMobileMenu()"
+                        class="w-full text-left px-4 py-3 text-sm hover:bg-white/5 transition-all duration-300">
+                        Text → Morse
+                    </button>
+
+                    <button id="mobile-decode"
+                            onclick="switchToDecode();closeMobileMenu()"
+                        class="w-full text-left px-4 py-3 text-sm hover:bg-white/5 transition-all duration-300">
+                        Morse → Text
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Status bar -->
+        <div class="px-6 py-2 border-b flex items-center gap-3 flex-shrink-0 text-[10px] uppercase tracking-[0.05em]" style="border-color:var(--border-subtle);color:var(--text-tertiary);background:var(--bg-deep);">
+            <span id="status-label">Standby</span>
+            <span style="color:var(--border-mid);">|</span>
+            <span id="status-detail">Ready</span>
+            <span class="ml-auto text-[10px]" id="char-count-display" style="color:var(--text-muted);"></span>
+        </div>
+
+        <!-- Home View -->
+        <div class="view active flex-1 min-h-0 overflow-auto" id="home-view">
+            <div class="flex-1 flex flex-col items-center justify-center px-6 py-10 min-h-0">
+                <div class="text-center mb-10">
+                    <h2 class="text-2xl sm:text-3xl font-medium tracking-[0.04em] mb-2" style="font-family:'Playfair Display',Georgia,serif;color:var(--text-primary);">Communication Utility</h2>
+                    <p class="text-xs uppercase tracking-[0.08em]" style="color:var(--text-tertiary);">Encode &amp; Decode with precision</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-xl">
+                    <button class="func-card flex flex-col gap-3 p-6 rounded-xl border text-left" style="background:var(--bg-elevated);border-color:var(--border-subtle);box-shadow:var(--shadow-card);"
+                    onclick="switchToEncode()">
+                    <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(200,170,110,0.08);">
+                        <i data-lucide="arrow-right-left" style="width:18px;height:18px;color:var(--accent);"></i>
+                    </div>
+                    <h3 class="text-sm font-semibold tracking-[0.03em]" style="font-family:'Playfair Display',Georgia,serif;">Text → Morse</h3>
+                    <p class="text-[11px] leading-relaxed" style="color:var(--text-tertiary);">Convert plain text into Morse code with visual symbols and audio playback.</p>
+                    <span class="card-arrow text-[10px] uppercase tracking-[0.06em] font-medium flex items-center gap-1.5 mt-1" style="color:var(--accent-dim);">Open Encoder <span>→</span></span>
+                </button>
+                <button class="func-card flex flex-col gap-3 p-6 rounded-xl border text-left" style="background:var(--bg-elevated);border-color:var(--border-subtle);box-shadow:var(--shadow-card);"
+                onclick="switchToDecode()">
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(200,170,110,0.08);">
+                    <i data-lucide="clock" style="width:18px;height:18px;color:var(--accent);"></i>
+                </div>
+                <h3 class="text-sm font-semibold tracking-[0.03em]" style="font-family:'Playfair Display',Georgia,serif;">Morse → Text</h3>
+                <p class="text-[11px] leading-relaxed" style="color:var(--text-tertiary);">Decode Morse sequences back into readable text with live feedback.</p>
+                <span class="card-arrow text-[10px] uppercase tracking-[0.06em] font-medium flex items-center gap-1.5 mt-1" style="color:var(--accent-dim);">Open Decoder <span>→</span></span>
+            </button>
+        </div>
+        <button onclick="toggleRef()" class="mt-8 text-[11px] uppercase tracking-[0.06em] font-medium flex items-center gap-2 transition-colors hover:opacity-80" style="color:var(--text-tertiary);">
+            Reference <i data-lucide="chevron-down" style="width:11px;height:11px" id="ref-chevron"></i>
+        </button>
+        <!-- Reference panel inline on home -->
+        <div id="ref-panel-home" class="hidden mt-4 w-full max-w-xl rounded-lg border p-4 max-h-[180px] overflow-auto" style="background:var(--bg-input);border-color:var(--border-subtle);">
+            <div id="ref-grid-home" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-x-3 gap-y-1.5 text-[11px] font-mono"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Encode View -->
+<div class="view flex-1 min-h-0" id="encode-view">
+    <div class="flex-1 flex flex-col lg:flex-row min-h-0">
+        <!-- Input -->
+        <div class="flex-1 flex flex-col border-b lg:border-b-0 lg:border-r min-h-0" style="border-color:var(--border-subtle);">
+            <div class="px-5 py-2.5 border-b flex items-center justify-between flex-shrink-0" style="border-color:var(--border-subtle);">
+                <span class="text-[10px] font-semibold uppercase tracking-[0.06em]" style="color:var(--accent-dim);">Input Text</span>
+                <button onclick="clearInput()"
+                class="px-3 py-1.5 rounded-md text-[10px] font-semibold uppercase tracking-[0.08em] transition-all duration-300 hover:scale-105 active:scale-95"
+                style="
+                background:rgba(200,170,110,0.12);
+                border:1px solid rgba(200,170,110,0.18);
+                color:var(--accent);
+                ">
+                    Clear
+                </button>
+            </div>
+            <div class="flex-1 p-5 min-h-0">
+                <textarea id="input-area-encode" class="w-full h-full resize-none bg-transparent text-[14px] leading-relaxed placeholder:opacity-40" style="color:var(--text-primary);" placeholder="Type your message here…" oninput="convertEncode()"></textarea>
+            </div>
+        </div>
+        <!-- Output -->
+        <div class="flex-1 flex flex-col min-h-0" style="background:var(--bg-surface);">
+            <div class="px-5 py-2.5 border-b flex items-center justify-between flex-shrink-0" style="border-color:var(--border-subtle);">
+                <span class="text-[10px] font-semibold uppercase tracking-[0.06em]" style="color:var(--accent-dim);">Morse Output</span>
+                <div class="flex items-center gap-2 relative">
+                    <span id="copy-toast-encode" class="absolute -top-6 right-0 text-[10px] font-medium hidden copy-toast" style="color:var(--accent);">Copied</span>
+                    <button onclick="playAudioEncode()" id="play-btn-encode" class="p-1.5 rounded-md transition-all hover:bg-white/5" title="Play audio" style="color:var(--text-secondary);">
+                        <i data-lucide="volume-2" style="width:14px;height:14px"></i>
+                    </button>
+                    <button onclick="copyOutputEncode()" class="p-1.5 rounded-md transition-all hover:bg-white/5" title="Copy" style="color:var(--text-secondary);">
+                        <i data-lucide="copy" style="width:14px;height:14px"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- Visual Morse display -->
+            <div id="visual-morse-display" class="px-5 py-3 border-b flex flex-wrap items-center gap-0 row-gap-1.5 min-h-[44px] empty:hidden" style="border-color:var(--border-subtle);background:var(--bg-input);">
+            </div>
+            <!-- Text output -->
+            <div class="flex-1 p-5 min-h-0 overflow-auto">
+                <div id="output-area-encode" class="font-mono text-[14px] leading-relaxed whitespace-pre-wrap break-all" style="color:var(--text-primary);"></div>
+                <div id="output-placeholder-encode" class="text-[14px]" style="color:var(--text-muted);">
+                    Morse code will appear here
+                </div>
+            </div>
+            <!-- Controls -->
+            <div class="px-5 py-3 border-t flex items-center gap-4 flex-wrap flex-shrink-0" style="border-color:var(--border-subtle);">
+                <div class="flex items-center gap-2 text-[10px] uppercase tracking-[0.04em]" style="color:var(--text-tertiary);">
+                    <span>Speed</span>
+                    <input type="range" id="wpm-slider" min="8" max="36" value="10" step="1" class="w-16" oninput="updateWPM()">
+                    <span id="wpm-value" class="font-mono text-[11px] font-medium" style="color:var(--accent);min-width:20px;">10</span>
+                    <span>WPM</span>
+                </div>
+                <div class="flex items-center gap-2 text-[10px] uppercase tracking-[0.04em]" style="color:var(--text-tertiary);">
+                    <span>Tone</span>
+                    <input type="range" id="tone-slider" min="400" max="900" value="650" step="10" class="w-16" oninput="updateTone()">
+                    <span id="tone-value" class="font-mono text-[11px] font-medium" style="color:var(--accent);min-width:28px;">650</span>
+                    <span>Hz</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Decode View -->
+<div class="view flex-1 min-h-0" id="decode-view">
+    <div class="flex-1 flex flex-col lg:flex-row min-h-0">
+        <!-- Input -->
+        <div class="flex-1 flex flex-col border-b lg:border-b-0 lg:border-r min-h-0" style="border-color:var(--border-subtle);">
+            <div class="px-5 py-2.5 border-b flex items-center justify-between flex-shrink-0" style="border-color:var(--border-subtle);">
+                <span class="text-[10px] font-semibold uppercase tracking-[0.06em]" style="color:var(--accent-dim);">Morse Input</span>
+                <button onclick="clearDecodeInput()"
+                class="px-3 py-1.5 rounded-md text-[10px] font-semibold uppercase tracking-[0.08em] transition-all duration-300 hover:scale-105 active:scale-95"
+                style="
+                background:rgba(200,170,110,0.12);
+                border:1px solid rgba(200,170,110,0.18);
+                color:var(--accent);
+                ">
+                    Clear
+                </button>      
+      </div>
+            <div class="flex-1 p-5 flex flex-col">
+                <textarea
+                    id="input-area-decode"
+                    class="w-full flex-1 bg-transparent text-[14px] font-mono leading-relaxed placeholder:opacity-40 pb-3 border-b mb-3 resize-none"
+                    style="color:var(--text-primary);border-color:var(--border-subtle);"
+                    placeholder="Enter Morse code (· — / //)…"
+                    oninput="convertDecode()"
+                    autocomplete="off"
+                    spellcheck="false">
+                </textarea>
+                <!-- Tap buttons -->
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="tapSymbol('.')" class="px-3 py-2 rounded-md text-[13px] font-mono font-semibold border transition-all hover:bg-white/5 active:scale-95" style="border-color:var(--border-mid);color:var(--text-primary);background:var(--bg-elevated);">·</button>
+                    <button onclick="tapSymbol('-')" class="px-3 py-2 rounded-md text-[13px] font-mono font-semibold border transition-all hover:bg-white/5 active:scale-95" style="border-color:var(--border-mid);color:var(--text-primary);background:var(--bg-elevated);">—</button>
+                    <span class="flex items-center text-[10px] mx-0.5" style="color:var(--text-muted);">|</span>
+                    <button onclick="tapSymbol(' ')" class="px-2.5 py-2 rounded-md text-[10px] font-medium uppercase tracking-[0.04em] border transition-all hover:bg-white/5 active:scale-95" style="border-color:var(--border-mid);color:var(--text-secondary);background:var(--bg-elevated);">Space</button>
+                    <button onclick="tapSymbol('/')" class="px-2.5 py-2 rounded-md text-[10px] font-medium uppercase tracking-[0.04em] border transition-all hover:bg-white/5 active:scale-95" style="border-color:var(--border-mid);color:var(--text-secondary);background:var(--bg-elevated);">/</button>
+                </div>
+            </div>
+        </div>
+        <!-- Output -->
+        <div class="flex-1 flex flex-col min-h-0" style="background:var(--bg-surface);">
+            <div class="px-5 py-2.5 border-b flex items-center justify-between flex-shrink-0" style="border-color:var(--border-subtle);">
+                <span class="text-[10px] font-semibold uppercase tracking-[0.06em]" style="color:var(--accent-dim);">Text Output</span>
+                <div class="flex items-center gap-2 relative">
+                    <span id="copy-toast-decode" class="absolute -top-6 right-0 text-[10px] font-medium hidden copy-toast" style="color:var(--accent);">Copied</span>
+                    <button onclick="copyOutputDecode()" class="p-1.5 rounded-md transition-all hover:bg-white/5" title="Copy" style="color:var(--text-secondary);">
+                        <i data-lucide="copy" style="width:14px;height:14px"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="flex-1 p-5 min-h-0 overflow-auto">
+                <div id="output-area-decode" class="text-[15px] leading-relaxed whitespace-pre-wrap break-all" style="color:var(--text-primary);"></div>
+                <div id="output-placeholder-decode" class="text-[14px]" style="color:var(--text-muted);">
+                    Decoded text will appear here
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer class="px-6 py-2.5 border-t flex items-center justify-between flex-shrink-0" style="border-color:var(--border-subtle);background:var(--bg-surface);">
+    <span class="text-[10px] uppercase tracking-[0.05em]" style="color:var(--text-muted);">Developed By ~ Shankar Prasad Pyke</span>
+    <div class="flex items-center gap-3">
+        <button onclick="switchToHome()" class="text-[10px] uppercase tracking-[0.05em] font-medium flex items-center gap-1.5 transition-colors hover:opacity-80" style="color:var(--text-tertiary);">
+            <i data-lucide="layout-dashboard" style="width:11px;height:11px"></i> Home
+        </button>
+        <button onclick="toggleRef()" class="text-[10px] uppercase tracking-[0.05em] font-medium flex items-center gap-1.5 transition-colors hover:opacity-80" style="color:var(--text-tertiary);">
+            Reference <i data-lucide="chevron-down" style="width:10px;height:10px" id="ref-chevron-footer"></i>
+        </button>
+    </div>
+</footer>
+
+<!-- Reference panel (global) -->
+<div id="ref-panel" class="hidden border-t px-6 py-4 flex-shrink-0 max-h-[180px] overflow-auto" style="border-color:var(--border-subtle);background:var(--bg-elevated);">
+    <div id="ref-grid" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-9 gap-x-4 gap-y-1.5 text-[11px] font-mono"></div>
+</div>
+</div>
+
+<script>
+    const MORSE_MAP = {
+        'A': '·—',
+        'B': '—···',
+        'C': '—·—·',
+        'D': '—··',
+        'E': '·',
+        'F': '··—·',
+        'G': '——·',
+        'H': '····',
+        'I': '··',
+        'J': '·———',
+        'K': '—·—',
+        'L': '·—··',
+        'M': '——',
+        'N': '—·',
+        'O': '———',
+        'P': '·——·',
+        'Q': '——·—',
+        'R': '·—·',
+        'S': '···',
+        'T': '—',
+        'U': '··—',
+        'V': '···—',
+        'W': '·——',
+        'X': '—··—',
+        'Y': '—·——',
+        'Z': '——··',
+        '0': '—————',
+        '1': '·————',
+        '2': '··———',
+        '3': '···——',
+        '4': '····—',
+        '5': '·····',
+        '6': '—····',
+        '7': '——···',
+        '8': '———··',
+        '9': '————·',
+        '.': '·—·—·—',
+        ',': '——··——',
+        '?': '··——··',
+        '!': '—·—·——',
+        '/': '—··—·',
+        '(': '—·——·',
+        ')': '—·——·—',
+        '&': '·—···',
+        ':': '———···',
+        ';': '—·—·—·',
+        '=': '—···—',
+        '+': '·—·—·',
+        '-': '—····—',
+        '_': '··——·—',
+        '"': '·—··—·',
+        '$': '···—··—',
+        '@': '·——·—·',
+        "'": '·————·',
+        ' ': '//'
+    };
+
+    const REVERSE_MAP = {};
+    for (const [k, v] of Object.entries(MORSE_MAP)) {
+        if (k !== ' ') REVERSE_MAP[v] = k;
+    }
+
+    let currentMode = 'encode';
+    let audioCtx = null;
+    let isPlaying = false;
+    let playbackTimeouts = [];
+    let allVisualSymbols = [];
+    let currentView = 'home';
+
+    // ── View Management ──────────────────────────────
+    function setView(view) {
+        currentView = view;
+        document.getElementById('home-view').classList.toggle('active', view === 'home');
+        document.getElementById('encode-view').classList.toggle('active', view === 'encode');
+        document.getElementById('decode-view').classList.toggle('active', view === 'decode');
+        updateStatusDetail();
+
+        if (view === 'home') {
+            document.getElementById('char-count-display').textContent = '';
+        }
+
+        if (view === 'encode') {
+            convertEncode();
+            document.getElementById('input-area-encode').focus();
+        } else if (view === 'decode') {
+            convertDecode();
+            document.getElementById('input-area-decode').focus();
+        }
+    }
+
+    function switchToHome() {
+        document.getElementById('mode-home').classList.add('active');
+        document.getElementById('mode-encode').classList.remove('active');
+        document.getElementById('mode-decode').classList.remove('active');
+        document.getElementById('mobile-home').classList.add('mobile-active');
+        document.getElementById('mobile-encode').classList.remove('mobile-active');
+        document.getElementById('mobile-decode').classList.remove('mobile-active');
+
+        setView('home');
+    }
+
+    function switchToEncode() {
+        currentMode = 'encode';
+        document.getElementById('mode-encode').classList.add('active');
+        document.getElementById('mode-decode').classList.remove('active');
+        document.getElementById('mode-home').classList.remove('active');
+        document.getElementById('mobile-home').classList.remove('mobile-active');
+        document.getElementById('mobile-encode').classList.add('mobile-active');
+        document.getElementById('mobile-decode').classList.remove('mobile-active');
+        setView('encode');
+    }
+
+    function switchToDecode() {
+        currentMode = 'decode';
+        document.getElementById('mode-decode').classList.add('active');
+        document.getElementById('mode-encode').classList.remove('active');
+        document.getElementById('mode-home').classList.remove('active');
+        document.getElementById('mobile-home').classList.remove('mobile-active');
+        document.getElementById('mobile-encode').classList.remove('mobile-active');
+        document.getElementById('mobile-decode').classList.add('mobile-active');
+        setView('decode');
+    }
+
+    function setMode(m) {
+        currentMode = m;
+
+        document.getElementById('mode-home').classList.remove('active');
+        document.getElementById('mode-encode').classList.remove('active');
+        document.getElementById('mode-decode').classList.remove('active');
+
+        if (m === 'encode') {
+            document.getElementById('mode-encode').classList.add('active');
+            setView('encode');
+        } else {
+            document.getElementById('mode-decode').classList.add('active');
+            setView('decode');
+        }
+    }
+
+    function updateStatusDetail() {
+        const detail = document.getElementById('status-detail');
+        const label = document.getElementById('status-label');
+        if (isPlaying) {
+            label.textContent = 'Playing';
+            detail.textContent = 'Audio active';
+            document.getElementById('status-dot').classList.add('playing-indicator');
+        } else if (currentView === 'encode') {
+            label.textContent = 'Standby';
+            detail.textContent = 'Encoder active';
+            document.getElementById('status-dot').classList.remove('playing-indicator');
+        } else if (currentView === 'decode') {
+            label.textContent = 'Standby';
+            detail.textContent = 'Decoder active';
+            document.getElementById('status-dot').classList.remove('playing-indicator');
+        } else {
+            label.textContent = 'Standby';
+            detail.textContent = 'Ready';
+            document.getElementById('status-dot').classList.remove('playing-indicator');
+        }
+    }
+
+    // ── Encode ──────────────────────────────────────
+    function encodeText(text) {
+        const trimmed = text.trim();
+        if (!trimmed) return { morseString: '', charMorseList: [], words: [] };
+        const words = trimmed.split(/\s+/);
+        const charMorseList = [];
+        const allMorseParts = [];
+        for (let wi = 0; wi < words.length; wi++) {
+            const word = words[wi];
+            const wordChars = [];
+            for (const ch of word) {
+                const upper = ch.toUpperCase();
+                const morse = MORSE_MAP[upper] || null;
+                wordChars.push({ char: upper, morse });
+                if (morse) allMorseParts.push(morse);
+            }
+            charMorseList.push({ type: 'word', chars: wordChars });
+            if (wi < words.length - 1) {
+                charMorseList.push({ type: 'space' });
+                allMorseParts.push('//');
+            }
+        }
+        const morseString = allMorseParts.join(' ');
+        return { morseString, charMorseList, words };
+    }
+
+    function buildVisualMorse(charMorseList) {
+        const display = document.getElementById('visual-morse-display');
+        display.innerHTML = '';
+        allVisualSymbols = [];
+        if (!charMorseList || charMorseList.length === 0) return;
+
+        for (const item of charMorseList) {
+            if (item.type === 'space') {
+                const sep = document.createElement('span');
+                sep.className = 'morse-word-sep';
+                sep.setAttribute('aria-label', 'word separator');
+                display.appendChild(sep);
+                continue;
+            }
+            if (item.type === 'word') {
+                for (const chData of item.chars) {
+                    const group = document.createElement('span');
+                    group.className = 'morse-char-group';
+                    if (chData.morse) {
+                        for (const sym of chData.morse) {
+                            const span = document.createElement('span');
+                            span.className = sym === '·' ? 'morse-dot' : 'morse-dash';
+                            span.setAttribute('data-type', sym);
+                            group.appendChild(span);
+                            allVisualSymbols.push({ el: span, type: sym === '·' ? 'dot' : 'dash' });
+                        }
+                    }
+                    display.appendChild(group);
+                }
+            }
+        }
+    }
+
+    function convertEncode() {
+        const input = document.getElementById('input-area-encode').value;
+        const outputEl = document.getElementById('output-area-encode');
+        const placeholder = document.getElementById('output-placeholder-encode');
+        const charCount = document.getElementById('char-count-display');
+        const { morseString, charMorseList } = encodeText(input);
+
+        const nonSpace = input.replace(/\s/g, '').length;
+        if (currentView === 'encode') {
+            charCount.textContent = nonSpace + ' character' + (nonSpace !== 1 ? 's' : '');
+        }
+
+        if (!input.trim()) {
+            outputEl.textContent = '';
+            placeholder.style.display = '';
+            document.getElementById('visual-morse-display').innerHTML = '';
+            allVisualSymbols = [];
+        } else {
+            placeholder.style.display = 'none';
+            outputEl.textContent = morseString;
+            buildVisualMorse(charMorseList);
+        }
+        if (isPlaying) stopPlayback();
+    }
+
+    function clearInput() {
+        document.getElementById('input-area-encode').value = '';
+        convertEncode();
+        document.getElementById('input-area-encode').focus();
+    }
+
+    function copyOutputEncode() {
+        const text = document.getElementById('output-area-encode').textContent;
+        if (!text) return;
+        navigator.clipboard.writeText(text);
+        showToast('copy-toast-encode');
+    }
+
+    // ── Decode ──────────────────────────────────────
+    function normalizeMorse(raw) {
+        let cleaned = raw.replace(/[—–_]/g, '—');
+        cleaned = cleaned.replace(/[•●◦]/g, '·');
+        cleaned = cleaned.replace(/\s+/g, ' ');
+        cleaned = cleaned.replace(/\/\//g, ' // ');
+        cleaned = cleaned.replace(/\//g, ' / ');
+        return cleaned.trim();
+    }
+
+    function decodeMorseString(rawInput) {
+        const normalized = normalizeMorse(rawInput);
+        if (!normalized) return { decodedText: '', details: [] };
+        const tokens = normalized.split(' ');
+        const decodedParts = [];
+        for (const token of tokens) {
+            if (token === '//' || token === '') {
+                if (decodedParts.length > 0 && decodedParts[decodedParts.length - 1] !== ' ') {
+                    decodedParts.push(' ');
+                }
+                continue;
+            }
+            const cleaned = token.replace(/[^·—\-]/g, '').replace(/\-/g, '—');
+            if (cleaned && REVERSE_MAP[cleaned]) {
+                decodedParts.push(REVERSE_MAP[cleaned]);
+            } else if (cleaned) {
+                decodedParts.push('?');
+            }
+        }
+        const result = decodedParts.join('').replace(/\s{2,}/g, ' ').trim();
+        return { decodedText: result, details: [] };
+    }
+
+    function convertDecode() {
+        const input = document.getElementById('input-area-decode').value;
+        const outputEl = document.getElementById('output-area-decode');
+        const placeholder = document.getElementById('output-placeholder-decode');
+        const charCount = document.getElementById('char-count-display');
+        const textarea = document.getElementById('input-area-decode');
+        const { decodedText } = decodeMorseString(input);
+
+        const textLen = decodedText.replace(/\s/g, '').length;
+        if (currentView === 'decode') {
+            charCount.textContent = textLen + ' character' + (textLen !== 1 ? 's' : '');
+        }
+
+        if (!decodedText && !input.trim()) {
+            outputEl.textContent = '';
+            placeholder.style.display = '';
+        } else if (!decodedText && input.trim()) {
+            outputEl.innerHTML = '<span style="color:var(--accent-dim);font-style:italic;">Awaiting complete sequence…</span>';
+            placeholder.style.display = 'none';
+        } else {
+            placeholder.style.display = 'none';
+            outputEl.textContent = decodedText;
+        }
+    }
+
+    function clearDecodeInput() {
+        document.getElementById('input-area-decode').value = '';
+        convertDecode();
+        document.getElementById('input-area-decode').focus();
+    }
+
+    function tapSymbol(sym) {
+        const input = document.getElementById('input-area-decode');
+        const map = { '.': '·', '-': '—', ' ': ' ', '/': '/' };
+        input.value += map[sym] || sym;
+        input.dispatchEvent(new Event('input'));
+        convertDecode();
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+    }
+
+    function copyOutputDecode() {
+        const text = document.getElementById('output-area-decode').textContent;
+        if (!text || text.includes('Awaiting')) return;
+        navigator.clipboard.writeText(text);
+        showToast('copy-toast-decode');
+    }
+
+    // ── Toast ───────────────────────────────────────
+    function showToast(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.remove('hidden');
+        el.classList.add('copy-toast');
+        setTimeout(() => {
+            el.classList.add('hidden');
+            el.classList.remove('copy-toast');
+        }, 2000);
+    }
+
+    // ── Audio Playback ──────────────────────────────
+    function stopPlayback() {
+        for (const t of playbackTimeouts) clearTimeout(t);
+        playbackTimeouts = [];
+        if (audioCtx && audioCtx.state !== 'closed') {
+            audioCtx.close().catch(() => {});
+        }
+        audioCtx = null;
+        for (const sym of allVisualSymbols) sym.el.classList.remove('active');
+        isPlaying = false;
+        const playBtn = document.getElementById('play-btn-encode');
+        playBtn.innerHTML = '<i data-lucide="volume-2" style="width:14px;height:14px"></i>';
+        playBtn.title = 'Play audio';
+        lucide.createIcons();
+        updateStatusDetail();
+    }
+
+    function playAudioEncode() {
+        if (isPlaying) { stopPlayback(); return; }
+        const input = document.getElementById('input-area-encode').value.trim();
+        if (!input) return;
+
+        const { charMorseList } = encodeText(input);
+        const playableSymbols = [];
+        for (const item of charMorseList) {
+            if (item.type === 'word') {
+                for (const chData of item.chars) {
+                    if (chData.morse) {
+                        for (const sym of chData.morse) {
+                            playableSymbols.push({ type: sym === '·' ? 'dot' : 'dash', letterEnd: false,
+                                wordEnd: false });
+                        }
+                        if (playableSymbols.length > 0) playableSymbols[playableSymbols.length - 1]
+                            .letterEnd = true;
+                    }
+                }
+            } else if (item.type === 'space') {
+                if (playableSymbols.length > 0) playableSymbols[playableSymbols.length - 1].wordEnd = true;
+            }
+        }
+        if (playableSymbols.length === 0) return;
+
+        buildVisualMorse(charMorseList);
+        const playableVisuals = allVisualSymbols.filter(s => s.type === 'dot' || s.type === 'dash');
+        const alignedCount = Math.min(playableSymbols.length, playableVisuals.length);
+        const wpm = parseInt(document.getElementById('wpm-slider').value, 10);
+        const freq = parseInt(document.getElementById('tone-slider').value, 10);
+        const unitMs = 1200 / wpm;
+
+        audioCtx = new(window.AudioContext || window.webkitAudioContext)();
+        const now = audioCtx.currentTime;
+        let cumulativeTime = now;
+
+        for (let i = 0; i < alignedCount; i++) {
+            const sym = playableSymbols[i];
+            const durationUnits = sym.type === 'dot' ? 1 : 3;
+            const toneDuration = durationUnits * unitMs / 1000;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.45, cumulativeTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, cumulativeTime + toneDuration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(cumulativeTime);
+            osc.stop(cumulativeTime + toneDuration);
+
+            const onTime = cumulativeTime;
+            const offTime = cumulativeTime + toneDuration;
+            const timerOn = setTimeout(() => {
+                if (!isPlaying) return;
+                if (i < playableVisuals.length) playableVisuals[i].el.classList.add('active');
+            }, (onTime - now) * 1000);
+            const timerOff = setTimeout(() => {
+                if (!isPlaying) return;
+                if (i < playableVisuals.length) playableVisuals[i].el.classList.remove('active');
+            }, (offTime - now) * 1000);
+            playbackTimeouts.push(timerOn, timerOff);
+
+            cumulativeTime += toneDuration;
+            cumulativeTime += unitMs / 1000;
+            if (sym.letterEnd && !sym.wordEnd) cumulativeTime += (2 * unitMs) / 1000;
+            if (sym.wordEnd) cumulativeTime += (4 * unitMs) / 1000;
+        }
+
+        const totalDurationMs = (cumulativeTime - now) * 1000;
+        const endTimer = setTimeout(() => stopPlayback(), totalDurationMs + 60);
+        playbackTimeouts.push(endTimer);
+
+        isPlaying = true;
+        const playBtn = document.getElementById('play-btn-encode');
+        playBtn.innerHTML = '<i data-lucide="square" style="width:14px;height:14px;fill:currentColor;"></i>';
+        playBtn.title = 'Stop';
+        lucide.createIcons();
+        updateStatusDetail();
+    }
+
+    function updateWPM() {
+        document.getElementById('wpm-value').textContent = document.getElementById('wpm-slider').value;
+        if (isPlaying) stopPlayback();
+    }
+
+    function updateTone() {
+        document.getElementById('tone-value').textContent = document.getElementById('tone-slider').value;
+        if (isPlaying) stopPlayback();
+    }
+
+    // ── Reference Panel ─────────────────────────────
+    function toggleRef() {
+        const panel = document.getElementById('ref-panel');
+        const panelHome = document.getElementById('ref-panel-home');
+        if (currentView === 'home') {
+            panelHome.classList.toggle('hidden');
+        } else {
+            panel.classList.toggle('hidden');
+        }
+    }
+
+    function buildRefGrid(gridId) {
+        const grid = document.getElementById(gridId);
+        if (!grid || grid.children.length > 0) return;
+        for (const [ch, code] of Object.entries(MORSE_MAP)) {
+            if (ch === ' ') continue;
+            const el = document.createElement('div');
+            el.className = 'flex items-center gap-1.5';
+            el.innerHTML =
+                `<span style="color:var(--text-muted);min-width:14px;">${ch}</span><span style="color:var(--text-primary);">${code}</span>`;
+            grid.appendChild(el);
+        }
+    }
+
+    buildRefGrid('ref-grid');
+    buildRefGrid('ref-grid-home');
+
+    // ── Keyboard Shortcuts ──────────────────────────
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            if (isPlaying) { stopPlayback();
+                e.preventDefault(); return; }
+            if (currentView !== 'home') { switchToHome();
+                e.preventDefault(); }
+        }
+        if (e.ctrlKey && e.key === ' ' && currentView === 'encode') {
+            e.preventDefault();
+            if (isPlaying) stopPlayback();
+            else playAudioEncode();
+        }
+    });
+
+    // ── Init ────────────────────────────────────────
+    function init() {
+        lucide.createIcons();
+        document.getElementById('wpm-value').textContent = '10';
+        document.getElementById('tone-value').textContent = '650';
+        document.getElementById('mode-home').classList.add('active');
+        document.getElementById('mobile-home').classList.add('mobile-active');
+        setView('home');
+        updateStatusDetail();
+    }
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+        if (isPlaying) stopPlayback();
+    });
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden && isPlaying) stopPlayback();
+    });
+
+    function toggleMobileMenu() {
+        const menu = document.getElementById('mobile-menu');
+
+        if (menu.classList.contains('opacity-0')) {
+            menu.classList.remove('opacity-0', 'scale-95', 'pointer-events-none');
+            menu.classList.add('opacity-100', 'scale-100');
+        } else {
+            menu.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+            menu.classList.remove('opacity-100', 'scale-100');
+        }
+    }
+
+    function closeMobileMenu() {
+        const menu = document.getElementById('mobile-menu');
+
+        menu.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+        menu.classList.remove('opacity-100', 'scale-100');
+    }
+
+    document.addEventListener('click', (e) => {
+        const menu = document.getElementById('mobile-menu');
+
+        if (
+            menu &&
+            !menu.contains(e.target) &&
+            !e.target.closest('[onclick="toggleMobileMenu()"]')
+        ) {
+            menu.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+            menu.classList.remove('opacity-100', 'scale-100');
+        }
+    });
+
+    init();
+
+    // ── Element SDK Integration ─────────────────────
+    const defaultConfig = {
+        app_title: 'Morse Code Tool',
+        background_color: '#0b0b10',
+        surface_color: '#12121a',
+        text_color: '#e8e4dd',
+        primary_action: '#c8a96e',
+        secondary_action: '#6e6b64',
+        font_family: 'DM Sans',
+        font_size: 14
+    };
+
+    function applyConfig(config) {
+        const bg = config.background_color || defaultConfig.background_color;
+        document.body.style.backgroundColor = bg;
+        document.documentElement.style.setProperty('--bg-deep', bg);
+        document.getElementById('app-title').textContent = config.app_title || defaultConfig.app_title;
+        document.body.style.color = config.text_color || defaultConfig.text_color;
+        document.documentElement.style.setProperty('--text-primary', config.text_color || defaultConfig
+            .text_color);
+        document.documentElement.style.setProperty('--accent', config.primary_action || defaultConfig
+            .primary_action);
+        document.body.style.fontFamily = (config.font_family || defaultConfig.font_family) + ', sans-serif';
+    }
+
+    if (window.elementSdk && window.elementSdk.init) {
+        window.elementSdk.init({
+            defaultConfig,
+            onConfigChange: async (config) => { applyConfig(config); },
+            mapToCapabilities: (config) => ({
+                recolorables: [
+                    { get: () => config.background_color || defaultConfig.background_color, set: (
+                            v) => { config.background_color = v;
+                            window.elementSdk.setConfig({ background_color: v }); } },
+                    { get: () => config.surface_color || defaultConfig.surface_color, set: (v) => {
+                            config.surface_color = v;
+                            window.elementSdk.setConfig({ surface_color: v }); } },
+                    { get: () => config.text_color || defaultConfig.text_color, set: (v) => { config
+                            .text_color = v;
+                        window.elementSdk.setConfig({ text_color: v }); } },
+                    { get: () => config.primary_action || defaultConfig.primary_action, set: (v) => {
+                            config.primary_action = v;
+                            window.elementSdk.setConfig({ primary_action: v }); } },
+                    { get: () => config.secondary_action || defaultConfig.secondary_action, set: (
+                        v) => { config.secondary_action = v;
+                        window.elementSdk.setConfig({ secondary_action: v }); } }
+                ],
+                borderables: [],
+                fontEditable: { get: () => config.font_family || defaultConfig.font_family, set: (v) => {
+                        config.font_family = v;
+                        window.elementSdk.setConfig({ font_family: v }); } },
+                fontSizeable: { get: () => config.font_size || defaultConfig.font_size, set: (v) => {
+                        config.font_size = v;
+                        window.elementSdk.setConfig({ font_size: v }); } }
+            }),
+            mapToEditPanelValues: (config) => new Map([
+                ['app_title', config.app_title || defaultConfig.app_title]
+            ])
+        });
+    }
+</script>
+</body>
+</html>
